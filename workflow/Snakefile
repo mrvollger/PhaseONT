@@ -8,6 +8,7 @@ min_version("6.0")
 SDIR = os.path.realpath(os.path.dirname(srcdir("Snakefile")))
 shell.prefix(f"set -eo pipefail; ")
 
+configfile: "config/config.yaml"
 
 config["temp"] = config.get("temp", "temp")
 config["tech"] = config.get("tech", "nanopore-raw")
@@ -41,23 +42,29 @@ rule run_trio_binning:
         mat=expand(rules.collect_reads.output.fasta, temp=config["temp"], hap="pat"),
         pat=expand(rules.collect_reads.output.fasta, temp=config["temp"], hap="mat"),
     output:
-        mat="results/mat.reads.fasta",
-        pat="results/pat.reads.fasta",
+        mat=expand(
+            "{temp}/trio/haplotype/haplotype-mat.fasta.gz", temp=config["temp"]
+        ),
+        pat=expand(
+            "{temp}/trio/haplotype/haplotype-pat.fasta.gz", temp=config["temp"]
+        ),
+        unk=expand(
+            "{temp}/trio/haplotype/haplotype-unknown.fasta.gz", temp=config["temp"]
+        ),
+        trio=temp(directory(config["temp"] + "/trio")),
     params:
         tech=config["tech"],
         tmp=config["temp"],
         genomeSize=config["genomeSize"],
-        mem="8g",
     conda:
         "envs/env.yaml"
-    threads: 1
+    threads: config["threads"]
     shell:
         """
         which canu
         canu --version
         canu -haplotype \
             maxThreads={threads} \
-            merylMemory={params.mem} \
             useGrid=false \
             -p asm -d {params.tmp}/trio \
             -genomeSize={params.genomeSize} \
@@ -67,6 +74,39 @@ rule run_trio_binning:
         """
 
 
+rule move_reads:
+    input:
+        mat=rules.run_trio_binning.output.mat,
+        pat=rules.run_trio_binning.output.pat,
+        unk=rules.run_trio_binning.output.unk,
+        trio=rules.run_trio_binning.output.trio,
+    output:
+        mat="results/mat.fa.gz",
+        pat="results/pat.fa.gz",
+        unk="results/unk.fa.gz",
+    conda:
+        "envs/env.yaml"
+    shell:
+        """
+        cp {input.mat} {output.mat}
+        cp {input.pat} {output.pat}
+        cp {input.unk} {output.unk}
+        """
+rule read_stats:
+    input:
+        mat=rules.run_trio_binning.output.mat,
+        pat=rules.run_trio_binning.output.pat,
+        unk=rules.run_trio_binning.output.unk,
+    output:
+        "results/phasing.stats.tbl"
+    conda:
+        "envs/env.yaml"
+    threads:1
+    shell:
+        "{SDIR}/scripts/phasing_by_lengths.py {input} > {output}"
+
 rule all:
     input:
-        rules.run_trio_binning.output,
+        rules.move_reads.output,
+        rules.read_stats.output,
+        trio=rules.run_trio_binning.output.trio,
