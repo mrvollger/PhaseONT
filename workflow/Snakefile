@@ -1,0 +1,66 @@
+import os
+import sys
+import math
+from snakemake.utils import min_version
+
+min_version("6.0")
+
+SDIR = os.path.realpath(os.path.dirname(srcdir("Snakefile")))
+shell.prefix(f"set -eo pipefail; ")
+
+
+config["temp"] = config.get("temp", "temp")
+config["tech"] = config.get("tech", "nanopore-raw")
+config["threads"] = config.get("threads", 40)
+config["genomeSize"] = config.get("genomeSize", "3g")
+print(config)
+
+
+rule collect_reads:
+    input:
+        reads=lambda wc: config[wc.hap],
+    output:
+        fasta="{temp}/{hap}.fasta",
+    conda:
+        "envs/env.yaml"
+    shell:
+        """
+        if [[ {input.reads} =~ .*\.(fofn) ]]; then
+                cat $(cat {input.reads}) | seqtk seq -l 80 -A > {output.fasta}
+        elif [[ {input.reads} =~ .*\.(fa|fq|fasta|fastq|gz) ]]; then
+                cat {input.reads} | seqtk seq -l 80 -A > {output.fasta}
+        fi
+        """
+
+
+rule run_trio_binning:
+    input:
+        fasta=expand(
+            rules.collect_reads.output.fasta, temp=config["temp"], hap="reads"
+        ),
+        mat=expand(rules.collect_reads.output.fasta, temp=config["temp"], hap="pat"),
+        pat=expand(rules.collect_reads.output.fasta, temp=config["temp"], hap="mat"),
+    output:
+        mat="results/mat.reads.fasta",
+        pat="results/pat.reads.fasta",
+    params:
+        tech=config["tech"],
+        genomeSize=config["genomeSize"],
+    conda:
+        "envs/env.yaml"
+    shell:
+        """
+        canu correct \
+            -d temp \
+            useGrid=false \
+            -haplotype -p asm -d {params.temp}/trio \
+            -genomeSize={params.genomeSize} \
+            -haplotypemat {input.mat} \
+            -haplotypepat {input.pat} \
+            -{params.tech} {input.fasta}
+        """
+
+
+rule all:
+    input:
+        rules.run_trio_binning.output,
