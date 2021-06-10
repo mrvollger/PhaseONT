@@ -8,7 +8,9 @@ min_version("6.0")
 SDIR = os.path.realpath(os.path.dirname(srcdir("Snakefile")))
 shell.prefix(f"set -eo pipefail; ")
 
+
 configfile: "config/config.yaml"
+
 
 config["temp"] = config.get("temp", "temp")
 config["tech"] = config.get("tech", "nanopore-raw")
@@ -95,18 +97,21 @@ rule move_reads:
         cp {input.pat} {output.pat}
         cp {input.unk} {output.unk}
         """
+
+
 rule read_stats:
     input:
         mat=rules.run_trio_binning.output.mat,
         pat=rules.run_trio_binning.output.pat,
         unk=rules.run_trio_binning.output.unk,
     output:
-        "results/phasing.stats.tbl"
+        "results/phasing.stats.tbl",
     conda:
         "envs/env.yaml"
-    threads:1
+    threads: 1
     shell:
         "{SDIR}/scripts/phasing_by_lengths.py {input} > {output}"
+
 
 rule all:
     input:
