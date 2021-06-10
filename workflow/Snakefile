@@ -24,12 +24,15 @@ rule collect_reads:
         fasta="{temp}/{hap}.fasta",
     conda:
         "envs/env.yaml"
+    threads: 8
     shell:
         """
         if [[ {input.reads} =~ .*\.(fofn) ]]; then
                 cat $(cat {input.reads}) | seqtk seq -l 80 -A > {output.fasta}
         elif [[ {input.reads} =~ .*\.(fa|fq|fasta|fastq|gz) ]]; then
                 cat {input.reads} | seqtk seq -l 80 -A > {output.fasta}
+        elif [[ {input.reads} =~ .*\.(bam|sam|cram) ]]; then
+                samtools fasta -@ {threads} -o {output.fasta} {input.reads}
         fi
         """
 
