@@ -1,15 +1,18 @@
 #!/usr/bin/env python
 import argparse
 import pysam
+import sys
 import pandas as pd
 
 def read_in_lenghts(file, tag):
 	reads = pysam.FastxFile(file)
 	out = {"name":[], "length":[], "tag":[]}
-	for rec in reads:
+	for idx, rec in enumerate(reads):
+		sys.stderr.write(f"\r{tag}:{idx+1}")
 		out["length"].append(len(rec.sequence))
 		out["name"].append(rec.name)
 		out["tag"].append(tag)
+	sys.stderr.write("\n")
 	return(out)
 
 def phased_by_length(df, length):
