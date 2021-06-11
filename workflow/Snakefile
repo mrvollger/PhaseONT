@@ -16,6 +16,7 @@ config["temp"] = config.get("temp", "temp")
 config["tech"] = config.get("tech", "nanopore-raw")
 config["threads"] = config.get("threads", 40)
 config["genomeSize"] = config.get("genomeSize", "3g")
+config["github"] = config.get("github", "")
 print(config)
 
 
@@ -80,6 +81,7 @@ rule run_trio_binning:
         tech=config["tech"],
         tmp=config["temp"],
         genomeSize=config["genomeSize"],
+        github_opt=config["github"],
     conda:
         "envs/env.yaml"
     threads: config["threads"]
@@ -88,9 +90,9 @@ rule run_trio_binning:
         which canu
         canu --version
         canu -haplotype \
+            {params.github_opt} \
             maxThreads={threads} \
             useGrid=false \
-            merylMemory=1G \
             -p asm -d {output.trio} \
             -genomeSize={params.genomeSize} \
             -haplotypemat {input.mat} \
