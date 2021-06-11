@@ -24,4 +24,4 @@ jobs:
       with:
         directory: .
         snakefile: workflow/Snakefile
-        args: "--configfile .test/config.yaml --use-conda -j 3 --conda-cleanup-pkgs cache -p all"
+        args: "--configfile .test/config.yaml --use-conda -j 4 --conda-cleanup-pkgs cache -p all"
