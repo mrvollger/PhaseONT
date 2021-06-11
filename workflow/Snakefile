@@ -90,6 +90,7 @@ rule run_trio_binning:
         canu -haplotype \
             maxThreads={threads} \
             useGrid=false \
+            merylMemory=1G \
             -p asm -d {output.trio} \
             -genomeSize={params.genomeSize} \
             -haplotypemat {input.mat} \
