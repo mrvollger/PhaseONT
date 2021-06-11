@@ -41,5 +41,5 @@ if __name__ == "__main__":
 		pd.DataFrame(read_in_lenghts(args.unk, "unk"))],
 		ignore_index=True)
 	print("min_read_length\tmat\tmat_count\tpat\tpat_count\tunknown\tunknown_count\tGbp")
-	for l in range(0, 200000, 10000):
+	for l in range(0, 150000, 2000):
 		phased_by_length(df, l)
