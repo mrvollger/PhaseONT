@@ -1,3 +1,4 @@
+prefix: HG00733
 reads: /net/eichler/vol27/projects/AlphaSatelliteMapping/nobackups/FindingAlphaSat/t2t_chr8/hg00733_chr8/data/ont/hg00733_all_ont.fofn
 mat: /net/eichler/vol26/projects/1kg_high_coverage/nobackups/data/Illumina/cram/HG00732.final.cram 
 pat: /net/eichler/vol26/projects/1kg_high_coverage/nobackups/data/Illumina/cram/HG00731.final.cram 

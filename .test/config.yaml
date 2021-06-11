@@ -1,3 +1,4 @@
+prefix: test
 reads: .test/test.fa.gz 
 mat: .test/mat.fa.gz
 pat: .test/pat.fa.gz 

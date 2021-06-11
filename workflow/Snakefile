@@ -23,7 +23,7 @@ rule collect_reads:
     input:
         reads=lambda wc: config[wc.hap],
     output:
-        fasta="{temp}/{hap}.fasta",
+        fasta="{temp}/{pre}.{hap}.fasta",
     conda:
         "envs/env.yaml"
     threads: 8
@@ -42,21 +42,40 @@ rule collect_reads:
 rule run_trio_binning:
     input:
         fasta=expand(
-            rules.collect_reads.output.fasta, temp=config["temp"], hap="reads"
+            rules.collect_reads.output.fasta,
+            temp=config["temp"],
+            hap="reads",
+            pre=config["prefix"],
         ),
-        mat=expand(rules.collect_reads.output.fasta, temp=config["temp"], hap="pat"),
-        pat=expand(rules.collect_reads.output.fasta, temp=config["temp"], hap="mat"),
-    output:
         mat=expand(
-            "{temp}/trio/haplotype/haplotype-mat.fasta.gz", temp=config["temp"]
+            rules.collect_reads.output.fasta,
+            temp=config["temp"],
+            hap="pat",
+            pre=config["prefix"],
         ),
         pat=expand(
-            "{temp}/trio/haplotype/haplotype-pat.fasta.gz", temp=config["temp"]
+            rules.collect_reads.output.fasta,
+            temp=config["temp"],
+            hap="mat",
+            pre=config["prefix"],
+        ),
+    output:
+        mat=expand(
+            "{temp}/{pre}/haplotype/haplotype-mat.fasta.gz",
+            temp=config["temp"],
+            pre=config["prefix"],
+        ),
+        pat=expand(
+            "{temp}/{pre}/haplotype/haplotype-pat.fasta.gz",
+            temp=config["temp"],
+            pre=config["prefix"],
         ),
         unk=expand(
-            "{temp}/trio/haplotype/haplotype-unknown.fasta.gz", temp=config["temp"]
+            "{temp}/{pre}/haplotype/haplotype-unknown.fasta.gz",
+            temp=config["temp"],
+            pre=config["prefix"],
         ),
-        trio=temp(directory(config["temp"] + "/trio")),
+        trio=temp(directory(config["temp"] + "/" + config["prefix"])),
     params:
         tech=config["tech"],
         tmp=config["temp"],
@@ -71,7 +90,7 @@ rule run_trio_binning:
         canu -haplotype \
             maxThreads={threads} \
             useGrid=false \
-            -p asm -d {params.tmp}/trio \
+            -p asm -d {output.trio} \
             -genomeSize={params.genomeSize} \
             -haplotypemat {input.mat} \
             -haplotypepat {input.pat} \
@@ -86,9 +105,9 @@ rule move_reads:
         unk=rules.run_trio_binning.output.unk,
         trio=rules.run_trio_binning.output.trio,
     output:
-        mat="results/mat.fa.gz",
-        pat="results/pat.fa.gz",
-        unk="results/unk.fa.gz",
+        mat="results/{pre}/mat.fa.gz",
+        pat="results/{pre}/pat.fa.gz",
+        unk="results/{pre}/unk.fa.gz",
     conda:
         "envs/env.yaml"
     shell:
@@ -105,7 +124,7 @@ rule read_stats:
         pat=rules.run_trio_binning.output.pat,
         unk=rules.run_trio_binning.output.unk,
     output:
-        "results/phasing.stats.tbl",
+        tbl="results/{pre}/phasing.stats.tbl",
     conda:
         "envs/env.yaml"
     threads: 1
@@ -115,6 +134,6 @@ rule read_stats:
 
 rule all:
     input:
-        rules.move_reads.output,
-        rules.read_stats.output,
-        trio=rules.run_trio_binning.output.trio,
+        expand(rules.move_reads.output, pre=config["prefix"]),
+        expand(rules.read_stats.output, pre=config["prefix"]),
+        expand(rules.run_trio_binning.output.trio, pre=config["prefix"]),
