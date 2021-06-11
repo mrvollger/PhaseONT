@@ -18,7 +18,8 @@ def phased_by_length(df, length):
 		return
 	c = df["tag"].append(pd.Series(["mat","pat","unk"])).value_counts()-1
 	f= c/sum(c)*100
-	print(f'{length}\t{f.mat:.1f}\t{c.mat}\t{f.pat:.1f}\t{c.pat}\t{f.unk:.1f}\t{c.unk}')
+	Gbp = sum(df["length"])/1e9
+	print(f'{length}\t{f.mat:.1f}\t{c.mat}\t{f.pat:.1f}\t{c.pat}\t{f.unk:.1f}\t{c.unk}\t{Gbp}')
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description="", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -32,6 +33,6 @@ if __name__ == "__main__":
 		pd.DataFrame(read_in_lenghts(args.pat, "pat")),
 		pd.DataFrame(read_in_lenghts(args.unk, "unk"))],
 		ignore_index=True)
-	print("min_read_length\tmat\tmat_count\tpat\tpat_count\tunknown\tunknown_count")
+	print("min_read_length\tmat\tmat_count\tpat\tpat_count\tunknown\tunknown_count\tGbp")
 	for l in range(0, 200000, 10000):
 		phased_by_length(df, l)
