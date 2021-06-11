@@ -3,4 +3,4 @@ reads: .test/test.fa.gz
 mat: .test/mat.fa.gz
 pat: .test/pat.fa.gz 
 genomeSize: 1k 
-github: "merylMemory=1G corMemory=1G"
+github: "merylMemory=1G corMemory=1G redMemory=1G"
