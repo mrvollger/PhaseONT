@@ -12,7 +12,7 @@ def read_in_lenghts(file, tag):
 		  "tag":[]
 		  }
 	for idx, rec in enumerate(reads):
-		sys.stderr.write(f"\r{tag}:{idx+1}")
+		sys.stderr.write(f"\r{tag} reads:\t{idx+1:,}")
 		out["length"].append(len(rec.sequence))
 		#out["name"].append(rec.name)
 		out["tag"].append(tag)
