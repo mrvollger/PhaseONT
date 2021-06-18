@@ -20,6 +20,11 @@ config["github"] = config.get("github", "")
 print(config)
 
 
+wildcard_constraints:
+    pre=config["prefix"],
+    hap="mat|pat|reads",
+
+
 rule collect_reads:
     input:
         reads=lambda wc: config[wc.hap],
@@ -40,6 +45,57 @@ rule collect_reads:
         """
 
 
+#
+# Hifiasm
+#
+rule yak:
+    input:
+        reads="{temp}/{pre}.{hap}.fasta",
+    output:
+        yak="{temp}/{pre}.{hap}.fasta.yak",
+    threads: 30
+    conda:
+        "envs/env.yaml"
+    shell:
+        """
+        yak count -k31 -b37 -t {threads} -o {output.yak} {input.reads}
+        """
+
+
+rule trio_hifiasm:
+    input:
+        pat=expand(rules.yak.output.yak, hap="pat", allow_missing=True),
+        mat=expand(rules.yak.output.yak, hap="mat", allow_missing=True),
+        reads=expand(rules.collect_reads.output, hap="reads", allow_missing=True),
+    output:
+        hap1="{temp}/{pre}.dip.hap1.p_ctg.gfa",
+        hap2="{temp}/{pre}.dip.hap2.p_ctg.gfa",
+        hap1fa="{temp}/{pre}.hap1.fa",
+        hap2fa="{temp}/{pre}.hap2.fa",
+    threads: 80
+    conda:
+        "envs/env.yaml"
+    shell:
+        """
+        hifiasm -o {wildcards.temp}/{wildcards.pre} -t {threads} \
+            -1 {input.pat} -2 {input.mat} {input.reads} 
+
+        awk '/^S/{{print ">"$2"_hap1\\n"$3}}' {output.hap1} \
+            | seqtk seq -l 80 > {output.hap1fa}
+
+        awk '/^S/{{print ">"$2"_hap2\\n"$3}}' {output.hap2} \
+            | seqtk seq -l 80 > {output.hap2fa}
+        """
+
+
+rule hifiasm:
+    input:
+        expand(rules.trio_hifiasm.output, pre=config["prefix"], temp=config["temp"]),
+
+
+#
+# Hicanu
+#
 rule run_trio_binning:
     input:
         fasta=expand(
@@ -101,6 +157,44 @@ rule run_trio_binning:
         """
 
 
+rule run_hicanu:
+    input:
+        reads="{temp}/{pre}/haplotype/haplotype-{hap}.fasta.gz",
+    output:
+        canu_dir=directory("{temp}/{pre}/{hap}/"),
+        fasta="{temp}/{pre}/{hap}/{pre}_{hap}.contigs.fasta",
+    params:
+        genomeSize=config["genomeSize"],
+        github_opt=config["github"],
+    conda:
+        "envs/env.yaml"
+    threads: config["threads"]
+    shell:
+        """
+        canu \
+            {params.github_opt} \
+            maxThreads={threads} \
+            useGrid=false \
+            -p {wildcards.pre}_{wildcards.hap} \
+            -d {output.canu_dir} \
+            -genomeSize={params.genomeSize} \
+            -pacbio-hifi {input.reads}
+        """
+
+
+rule hicanu:
+    input:
+        expand(
+            rules.run_hicanu.output,
+            pre=config["prefix"],
+            temp=config["temp"],
+            hap=["mat", "pat"],
+        ),
+
+
+#
+# Stats
+#
 rule move_reads:
     input:
         mat=rules.run_trio_binning.output.mat,
