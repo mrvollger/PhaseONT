@@ -72,7 +72,7 @@ rule trio_hifiasm:
         hap2="{temp}/{pre}.dip.hap2.p_ctg.gfa",
         hap1fa="{temp}/{pre}.hap1.fa",
         hap2fa="{temp}/{pre}.hap2.fa",
-    threads: 80
+    threads: config["threads"]
     conda:
         "envs/env.yaml"
     shell:
