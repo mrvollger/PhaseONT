@@ -107,13 +107,13 @@ rule run_trio_binning:
         mat=expand(
             rules.collect_reads.output.fasta,
             temp=config["temp"],
-            hap="pat",
+            hap="mat",
             pre=config["prefix"],
         ),
         pat=expand(
             rules.collect_reads.output.fasta,
             temp=config["temp"],
-            hap="mat",
+            hap="pat",
             pre=config["prefix"],
         ),
     output:
